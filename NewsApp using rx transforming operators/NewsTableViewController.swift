@@ -20,24 +20,32 @@ class NewsTableViewController: UITableViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         
         populateNews()
+        print(articles)
     }
     
     private func populateNews() {
-        let url = URL(string: "https://newsapi.org/v2/top-headlines?country=us&apiKey=8b5efbb9647d421fa1596e6eda2ae78e")!
         
-        Observable.just(url)
-            .flatMap { (url) -> Observable<Data> in
-                let request = URLRequest(url: url)
-                return URLSession.shared.rx.data(request: request)
-            }.map { (data) -> [Article]? in
-                return try? JSONDecoder().decode(ArticleList.self, from: data).articles 
-            }.subscribe(onNext: { [weak self] articles in
-                if let articles = articles {
-                    self?.articles = articles
+        URLRequest.load(resourse: ArticleList.all)
+            .subscribe(onNext: { [weak self] result in
+                if let result = result {
+                    self?.articles = result.articles
                     DispatchQueue.main.async {
                         self?.tableView.reloadData()
                     }
                 }
             }).disposed(by: disposeBag)
+    }
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return articles.count
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as? ArticleCell else {
+            fatalError("ArticleCell does not exist")
+        }
+        cell.titleLabel.text = articles[indexPath.row].title
+        cell.descrioptionLabel.text = articles[indexPath.row].description
+        return cell
     }
 }
